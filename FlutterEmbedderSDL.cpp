@@ -37,10 +37,21 @@ void updateSize(FlutterEngine engine, size_t width, size_t height, float pixelRa
     FlutterEngineSendWindowMetricsEvent(engine, &event);
 }
 
-bool RunFlutter(SDL_Window *window,
-                SDL_GLContext &context,
-                const std::string &project_path,
-                const std::string &icudtl_path)
+void updatePointer(FlutterEngine engine, FlutterPointerPhase phase, double x, double y, size_t timestamp)
+{
+    FlutterPointerEvent event = {};
+    event.struct_size = sizeof(event);
+    event.phase = phase;
+    event.x = x * scaleFactor;
+    event.y = y * scaleFactor;
+    event.timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    FlutterEngineSendPointerEvent(reinterpret_cast<FlutterEngine>(engine), &event, 1);
+}
+
+FlutterEngine RunFlutter(SDL_Window *window,
+                         SDL_GLContext &context,
+                         const std::string &project_path,
+                         const std::string &icudtl_path)
 {
     SDL_SetWindowData(window, "GL", context);
 
@@ -88,7 +99,7 @@ bool RunFlutter(SDL_Window *window,
     //   auto [w, h, dpi] = roundWindowSize(window);
     updateSize(engine, kInitialWindowWidth, kInitialWindowHeight, 1, SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED);
 
-    return true;
+    return engine;
 }
 
 int main(int argc, char *argv[])
@@ -134,7 +145,11 @@ int main(int argc, char *argv[])
     int r = 0, g = 255, b = 0;
     maincontext = SDL_GL_CreateContext(window);
 
-    bool runResult = RunFlutter(window, maincontext, project_path, icudtl_path);
+    bool mouseDown = false;
+    int mouseId = 0;
+    int lastMouseX, lastMouseY;
+
+    FlutterEngine engine = RunFlutter(window, maincontext, project_path, icudtl_path);
     while (!quit) //Same as while(quit == false)
     {
 
@@ -149,6 +164,47 @@ int main(int argc, char *argv[])
             {
                 //...go out of the while loop
                 quit = true;
+            }
+
+
+
+
+
+            // Mouse button support
+            if (input.type == SDL_MOUSEBUTTONDOWN)
+            {
+                if (!mouseDown)
+                {
+                    mouseDown = true;
+                    mouseId = input.button.which;
+                    lastMouseX = input.button.x;
+                    lastMouseY = input.button.y;
+                    updatePointer(engine, FlutterPointerPhase::kDown, input.button.x, input.button.y, input.button.timestamp);
+                }
+                // printf("mouse down");
+            }
+
+            if (input.type == SDL_MOUSEBUTTONUP)
+            {
+                if (mouseDown && mouseId == input.button.which)
+                {
+                    mouseDown = false;
+                    lastMouseX = input.button.x;
+                    lastMouseY = input.button.y;
+                    updatePointer(engine, FlutterPointerPhase::kUp, input.button.x, input.button.y, input.button.timestamp);
+                }
+                // printf("mouse up");
+            }
+
+            if (input.type == SDL_MOUSEMOTION)
+            {
+                if (mouseDown && mouseId == input.button.which)
+                {
+                    lastMouseX = input.button.x;
+                    lastMouseY = input.button.y;
+                    updatePointer(engine, FlutterPointerPhase::kMove, input.button.x, input.button.y, input.button.timestamp);
+                }
+                // printf("mouse up");
             }
         }
 
