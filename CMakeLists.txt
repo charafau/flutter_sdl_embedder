@@ -15,6 +15,10 @@ target_link_libraries(embedder ${SDL2_LIBRARIES})
 ############################################################
 # This is assuming you've built a local version of the Flutter Engine.  If you
 # downloaded yours is from the internet you'll have to change this.
+
+include_directories("/home/charafau/Utils/engine/src/flutter/shell/platform/common/public/")
+include_directories("/home/charafau/Utils/engine/src/flutter/shell/platform/common/client_wrapper/include/flutter")
+
 find_library(FLUTTER_LIB flutter_engine PATHS ${CMAKE_SOURCE_DIR}/)
 target_link_libraries(embedder ${FLUTTER_LIB})
 # Copy the flutter library here since the shared library

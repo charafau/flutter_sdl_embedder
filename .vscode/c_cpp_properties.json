@@ -1,0 +1,22 @@
+{
+    "env": {
+        "myDefaultIncludePath": [
+            "${workspaceFolder}",
+            "/home/charafau/Utils/engine/src/flutter/shell/platform/common/public",
+	    "/home/charafau/Utils/engine/src/flutter/shell/platform/common/client_wrapper/include/flutter"
+        ]
+    },
+    "configurations": [
+        {
+            "name": "Linux",
+            "intelliSenseMode": "clang-x64",
+            "includePath": [
+                "${myDefaultIncludePath}"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}

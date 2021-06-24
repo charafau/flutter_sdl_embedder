@@ -1,4 +1,7 @@
-#include "embedder.h"
+#include "flutter_embedder.h"
+// #include "plugin_registrar.h"
+#include "binary_messenger.h"
+#include "method_channel.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <cassert>
@@ -16,6 +19,12 @@ static const size_t kInitialWindowWidth = 800;
 static const size_t kInitialWindowHeight = 600;
 
 constexpr float scaleFactor = 1.0f;
+
+#define FLUTTER_RESULT_TO_STRING(result)                                                                 \
+    ((result) == kSuccess ? "Success." : (result) == kInvalidLibraryVersion ? "Invalid library version." \
+                                     : (result) == kInvalidArguments        ? "Invalid arguments."       \
+                                     : (result) == kInternalInconsistency   ? "Internal inconsistency."  \
+                                                                            : "(?)")
 
 void printUsage()
 {
@@ -102,6 +111,33 @@ FlutterEngine RunFlutter(SDL_Window *window,
     return engine;
 }
 
+void sendPlatformMessage(FlutterEngine engine, const char *channel, const char *message)
+{
+
+    FlutterEngineResult result;
+    FlutterPlatformMessage platformMessage = {0};
+
+    platformMessage.struct_size = sizeof(FlutterPlatformMessage);
+    platformMessage.channel = channel;
+    platformMessage.message = reinterpret_cast<const uint8_t *>(message);
+    platformMessage.message_size = strlen(message);
+
+    printf("sending... with message:\n %s \n\n", message);
+
+    result = FlutterEngineSendPlatformMessage(
+        engine,
+        &platformMessage);
+
+    if (result != kSuccess)
+    {
+        printf("Error sending platform message. FlutterEngineSendPlatformMessage: %s\n", (result));
+    }
+
+    printf("got result from engine FlutterEngineSendPlatformMessage: %s\n", (result));
+    //this is it!
+    std::unique_ptr<flutter::MethodChannel<std::string>> chan;
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -150,6 +186,7 @@ int main(int argc, char *argv[])
     int lastMouseX, lastMouseY;
 
     FlutterEngine engine = RunFlutter(window, maincontext, project_path, icudtl_path);
+
     while (!quit) //Same as while(quit == false)
     {
 
@@ -166,9 +203,39 @@ int main(int argc, char *argv[])
                 quit = true;
             }
 
+            if (input.type == SDL_TEXTINPUT)
+            {
 
+                // printf("should send button");
 
+                const char *text =
+                    "{"
+                    "\"channel\": \"flutter/keyevent\","
+                    "\"message\":{"
+                    "\"keyCode\": 65," // letter A
+                    "\"keymap\": \"linux\","
+                    // "\"scanCode\": 0,"
+                    // "\"modifiers\": 0,"
+                    "\"type\": \"keydown\""
+                    "}"
+                    "}";
+                sendPlatformMessage(engine, "flutter/keyevent", text);
 
+                const char *text2 =
+
+                    "{"
+                    "\"channel\": \"flutter/keyevent\","
+                    "\"message\":{"
+                    "\"keyCode\": 65," // letter A
+                    "\"keymap\": \"linux\","
+                    // "\"scanCode\": 0,"
+                    // "\"modifiers\": 0,"
+                    "\"type\": \"keyup\""
+                    "}"
+                    "}";
+
+                sendPlatformMessage(engine, "flutter/keyevent", text2);
+            }
 
             // Mouse button support
             if (input.type == SDL_MOUSEBUTTONDOWN)
